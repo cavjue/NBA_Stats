@@ -1,10 +1,382 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Stats</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(180deg, #0b1020 0%, #0d1426 100%);
+            color: #eaf2ff;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(13, 20, 38, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            gap: 20px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: #a7b8d8;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #7dc5ff;
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #eaf2ff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #7dc5ff;
+            box-shadow: 0 0 12px rgba(125, 197, 255, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: #a7b8d8;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(13, 20, 38, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:hover {
+            background: rgba(125, 197, 255, 0.1);
+        }
+
+        .result-name {
+            font-weight: 500;
+        }
+
+        .result-team {
+            color: #a7b8d8;
+            font-size: 12px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            color: #a7b8d8;
+            font-size: 18px;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: rgba(13, 20, 38, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: #7dc5ff;
+            box-shadow: 0 8px 24px rgba(125, 197, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .nav-links {
+                gap: 16px;
+            }
+
+            .search-container {
+                max-width: 100%;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
     <nav class="navbar">
-        <ul class="nav-links">
-            <li><a href="#home">Home</a></li>
-            <li><a href=#Stats>Stats</a></li>
-            <li><a href="#about">Blog</a></li>
-        </ul>
+        <div class="navbar-content">
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#stats">Stats</a></li>
+                <li><a href="blog.html">Blog</a></li>
+            </ul>
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="playerSearch" 
+                    class="search-input" 
+                    placeholder="Search players..."
+                    autocomplete="off"
+                >
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
     </nav>
-    <input>
+
+    <div class="container">
+        <div class="hero">
+            <h1>NBA Stats Dashboard</h1>
+            <p>Explore player statistics and performance metrics</p>
+        </div>
+
+        <div class="stats-section" id="statsSection">
+            <!-- Stats will load here -->
+        </div>
+    </div>
+
+    <script>
+        const STATS_CSV_URL = 'https://raw.githubusercontent.com/cavjue/NBA_Stats/main/PlayerStatistics.csv';
+        let allPlayers = [];
+
+        // Parse CSV function
+        function parseCSV(text) {
+            const rows = [];
+            const lines = text.trim().split(/\r?\n/);
+
+            for (const line of lines) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+
+                values.push(current);
+                rows.push(values);
+            }
+
+            return rows;
+        }
+
+        // Get header index by looking for partial matches
+        function getHeaderIndex(headers, candidates) {
+            const normalized = headers.map((h) => (h || '').trim().toLowerCase());
+            for (const candidate of candidates) {
+                const idx = normalized.findIndex((name) => name.includes(candidate));
+                if (idx !== -1) return idx;
+            }
+            return -1;
+        }
+
+        // Load and parse CSV data
+        function loadPlayerData() {
+            fetch(STATS_CSV_URL)
+                .then((response) => {
+                    if (!response.ok) throw new Error('CSV not found');
+                    return response.text();
+                })
+                .then((csv) => {
+                    const rows = parseCSV(csv);
+                    const headers = rows[0].map((h) => String(h).trim());
+
+                    const firstNameIndex = getHeaderIndex(headers, ['firstname']);
+                    const lastNameIndex = getHeaderIndex(headers, ['lastname']);
+                    const teamCityIndex = getHeaderIndex(headers, ['playerteamcity']);
+                    const teamNameIndex = getHeaderIndex(headers, ['playerteamname']);
+
+                    // Extract unique players
+                    const playerMap = {};
+                    for (let i = 1; i < rows.length; i++) {
+                        const firstName = (rows[i][firstNameIndex] || '').trim();
+                        const lastName = (rows[i][lastNameIndex] || '').trim();
+                        const teamCity = (rows[i][teamCityIndex] || '').trim();
+                        const teamName = (rows[i][teamNameIndex] || '').trim();
+
+                        if (!firstName || !lastName) continue;
+
+                        const key = `${firstName} ${lastName}`.toLowerCase();
+                        if (!playerMap[key]) {
+                            playerMap[key] = {
+                                firstName,
+                                lastName,
+                                team: `${teamCity} ${teamName}`.trim(),
+                                display: `${firstName} ${lastName}`
+                            };
+                        }
+                    }
+
+                    allPlayers = Object.values(playerMap).sort((a, b) =>
+                        a.display.localeCompare(b.display)
+                    );
+
+                    initializeSearch();
+                })
+                .catch((error) => {
+                    console.error('Error loading player data:', error);
+                });
+        }
+
+        // Initialize search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('playerSearch');
+            const searchResults = document.getElementById('searchResults');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+
+                if (query.length < 1) {
+                    searchResults.classList.remove('active');
+                    return;
+                }
+
+                const filtered = allPlayers.filter((player) =>
+                    player.display.toLowerCase().includes(query)
+                ).slice(0, 8); // Limit to 8 results
+
+                if (filtered.length === 0) {
+                    searchResults.classList.remove('active');
+                    return;
+                }
+
+                searchResults.innerHTML = filtered.map((player) => `
+                    <div class="search-result-item" data-player="${player.display}">
+                        <div>
+                            <div class="result-name">${player.display}</div>
+                            <div class="result-team">${player.team || 'Team TBD'}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                searchResults.classList.add('active');
+
+                // Add click handlers
+                document.querySelectorAll('.search-result-item').forEach((item) => {
+                    item.addEventListener('click', () => {
+                        navigateToPlayer(item.dataset.player);
+                    });
+                });
+            });
+
+            // Close results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-container')) {
+                    searchResults.classList.remove('active');
+                }
+            });
+        }
+
+        // Navigate to player page
+        function navigateToPlayer(playerName) {
+            // Convert player name to kebab-case for URL
+            const urlName = playerName
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^\w-]/g, '');
+
+            window.location.href = `Players/${urlName}.html`;
+        }
+
+        // Load player data on page load
+        loadPlayerData();
+    </script>
+</body>
 </html>
