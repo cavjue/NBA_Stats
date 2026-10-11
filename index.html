@@ -174,15 +174,15 @@
         .date-controls button, .date-controls input { background:#fff; color:#111; border:1px solid #ccc; border-radius:4px; padding:8px 10px; font:inherit; }
         .date-controls button { cursor:pointer; }
         .date-controls button:hover { background:#f5f5f5; }
-        #selectedDateLabel { color:#a7b8d8; min-width:150px; text-align:center; }
+        #selectedDateLabel { color:#666; min-width:150px; text-align:center; }
         .games-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:14px; }
         .game-card { background:#fff; border:1px solid #ddd; border-radius:4px; padding:16px; }
         .game-status { color:#555; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; }
         .team-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; }
         .team-name { font-weight:600; }
-        .team-record { color:#a7b8d8; font-size:12px; margin-top:3px; }
+        .team-record { color:#666; font-size:12px; margin-top:3px; }
         .team-score { font-size:1.35rem; font-weight:700; font-variant-numeric:tabular-nums; }
-        .game-footer { border-top:1px solid #eee; margin-top:12px; padding-top:12px; color:#a7b8d8; font-size:12px; }
+        .game-footer { border-top:1px solid #eee; margin-top:12px; padding-top:12px; color:#666; font-size:12px; }
         .schedule-message { color:#555; padding:24px; text-align:center; border:1px solid #ddd; border-radius:4px; }
 
         @media (max-width: 768px) {
@@ -232,6 +232,21 @@
             <p>Player statistics</p>
         </div>
 
+        <section class="schedule-section" id="games" aria-labelledby="dailySlateTitle">
+            <div class="schedule-header">
+                <h2 id="dailySlateTitle">NBA Daily Slate</h2>
+                <div class="date-controls">
+                    <button type="button" id="previousDate" aria-label="Previous day">‹ Prev</button>
+                    <input type="date" id="slateDate" aria-label="Select slate date">
+                    <button type="button" id="nextDate" aria-label="Next day">Next ›</button>
+                    <button type="button" id="todayDate">Today</button>
+                </div>
+            </div>
+            <div id="gamesGrid" class="games-grid">
+                <div class="schedule-message">Loading NBA games…</div>
+            </div>
+        </section>
+
         <div class="schedule-header" id="stats">
             <h2>Player Statistics</h2>
         </div>
@@ -243,6 +258,99 @@
     <script>
         const STATS_CSV_URL = 'https://raw.githubusercontent.com/cavjue/NBA_Stats/main/PlayerStatistics.csv';
         let allPlayers = [];
+
+        // Daily NBA slate (ESPN scoreboard feed)
+        const SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+        const slateDateInput = document.getElementById('slateDate');
+        const gamesGrid = document.getElementById('gamesGrid');
+
+        function formatDateForApi(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function dateFromInput(value) {
+            const parts = value.split('-').map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function setSlateDate(date) {
+            const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            slateDateInput.value = `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, '0')}-${String(normalized.getDate()).padStart(2, '0')}`;
+            loadDailySlate(normalized);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        function renderDailySlate(data) {
+            const events = data.events || [];
+            if (!events.length) {
+                gamesGrid.innerHTML = '<div class="schedule-message">No NBA games scheduled for this date.</div>';
+                return;
+            }
+
+            gamesGrid.innerHTML = events.map((event) => {
+                const competition = event.competitions?.[0];
+                const competitors = competition?.competitors || [];
+                const home = competitors.find((team) => team.homeAway === 'home') || competitors[0] || {};
+                const away = competitors.find((team) => team.homeAway === 'away') || competitors[1] || {};
+                const status = event.status?.type?.detail || event.status?.type?.shortDetail || 'Scheduled';
+                const isCompleted = event.status?.type?.completed;
+                const isLive = event.status?.type?.state === 'in';
+                const displayTeam = (team) => team.team?.displayName || team.team?.shortDisplayName || 'TBD';
+                const score = (team) => team.score !== undefined ? escapeHtml(team.score) : '—';
+                const gameTime = event.date ? new Date(event.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+                const venue = competition?.venue?.fullName || '';
+                return `
+                    <article class="game-card">
+                        <div class="game-status">${escapeHtml(status)}</div>
+                        <div class="team-row">
+                            <div><div class="team-name">${escapeHtml(displayTeam(away))}</div><div class="team-record">${escapeHtml(away.records?.[0]?.summary || '')}</div></div>
+                            <div class="team-score">${isCompleted || isLive ? score(away) : '—'}</div>
+                        </div>
+                        <div class="team-row">
+                            <div><div class="team-name">${escapeHtml(displayTeam(home))}</div><div class="team-record">${escapeHtml(home.records?.[0]?.summary || '')}</div></div>
+                            <div class="team-score">${isCompleted || isLive ? score(home) : '—'}</div>
+                        </div>
+                        <div class="game-footer">${escapeHtml(gameTime)}${venue ? ' · ' + escapeHtml(venue) : ''}</div>
+                    </article>`;
+            }).join('');
+        }
+
+        async function loadDailySlate(date) {
+            gamesGrid.innerHTML = '<div class="schedule-message">Loading NBA games…</div>';
+            try {
+                const response = await fetch(`${SCOREBOARD_URL}?dates=${formatDateForApi(date)}`);
+                if (!response.ok) throw new Error(`Scoreboard request failed (${response.status})`);
+                const data = await response.json();
+                renderDailySlate(data);
+            } catch (error) {
+                console.error('Error loading NBA daily slate:', error);
+                gamesGrid.innerHTML = '<div class="schedule-message">Could not load the NBA slate. Please try again later.</div>';
+            }
+        }
+
+        document.getElementById('previousDate').addEventListener('click', () => {
+            const date = dateFromInput(slateDateInput.value);
+            date.setDate(date.getDate() - 1);
+            setSlateDate(date);
+        });
+        document.getElementById('nextDate').addEventListener('click', () => {
+            const date = dateFromInput(slateDateInput.value);
+            date.setDate(date.getDate() + 1);
+            setSlateDate(date);
+        });
+        document.getElementById('todayDate').addEventListener('click', () => setSlateDate(new Date()));
+        slateDateInput.addEventListener('change', () => {
+            if (slateDateInput.value) setSlateDate(dateFromInput(slateDateInput.value));
+        });
+        setSlateDate(new Date());
 
         // Parse CSV function
         function parseCSV(text) {
