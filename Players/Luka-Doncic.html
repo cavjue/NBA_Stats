@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Luka Dončić | Player Profile</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #101a2d;
+        --panel-alt: #121e34;
+        --text: #eaf2ff;
+        --muted: #a7b8d8;
+        --line: rgba(255, 255, 255, 0.08);
+        --accent: #7dc5ff;
+        --green: #5ddab4;
+        --red: #ff7e7e;
+        --gold: #f6c76d;
+        --shadow: 0 18px 30px rgba(0, 0, 0, 0.25);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(180deg, #0b1020 0%, #0d1426 100%);
+        color: var(--text);
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 26px 20px 60px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        gap: 12px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.02);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.3fr 0.7fr;
+        gap: 18px;
+        margin-top: 14px;
+      }
+
+      .panel {
+        background: rgba(13, 20, 38, 0.9);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .player-panel {
+        padding: 28px 26px 22px;
+      }
+
+      .player-name {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .player-meta {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .player-meta span {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.02);
+        padding: 7px 10px;
+        border-radius: 999px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .stat-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 12px;
+      }
+
+      .stat-card .label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .stat-card .value {
+        font-size: clamp(1.3rem, 2vw, 2rem);
+        font-weight: 700;
+        letter-spacing: -0.05em;
+      }
+
+      .stat-card .note {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .side-panel {
+        padding: 18px 18px 10px;
+      }
+
+      .side-panel h3 {
+        margin: 0 0 14px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(100px, 1fr));
+        gap: 10px;
+      }
+
+      .mini {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 12px 10px;
+      }
+
+      .mini .label {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .mini .value {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.3rem;
+        font-weight: 700;
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1.45fr 0.55fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .section {
+        padding: 16px 16px 14px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .section-header h2 {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 12px;
+      }
+
+      thead th {
+        text-align: left;
+        padding: 12px 10px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody td {
+        padding: 11px 10px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      tbody tr:hover {
+        background: rgba(255,255,255,0.015);
+      }
+
+      .win {
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      .loss {
+        color: var(--red);
+        font-weight: 700;
+      }
+
+      .splits-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 10px;
+      }
+
+      .split-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 10px;
+      }
+
+      .split-card .name {
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .split-card .big {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+
+      .split-card .sub {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .hero, .main-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        .summary-grid, .mini-grid, .splits-grid {
+          grid-template-columns: 1fr;
+        }
+
+        table {
+          display: block;
+          overflow-x: auto;
+          white-space: nowrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <div class="tag">Player Profile</div>
+      </div>
+
+      <div class="hero">
+        <section class="panel player-panel">
+          <h1 class="player-name" id="player-name">Luka Dončić</h1>
+          <div class="player-meta" id="player-meta"></div>
+
+          <div class="summary-grid" id="summary-grid"></div>
+        </section>
+
+        <aside class="panel side-panel">
+          <h3>Quick profile</h3>
+          <div class="mini-grid" id="mini-grid"></div>
+        </aside>
+      </div>
+
+      <div class="main-grid">
+        <section class="panel section">
+          <div class="section-header">
+            <h2>Recent games</h2>
+          </div>
+          <div style="overflow:hidden; border-radius:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Opponent</th>
+                  <th>Result</th>
+                  <th>PTS</th>
+                  <th>AST</th>
+                  <th>REB</th>
+                  <th>MIN</th>
+                </tr>
+              </thead>
+              <tbody id="recent-games"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="panel section">
+          <div class="section-header">
+            <h2>Splits</h2>
+          </div>
+          <div class="splits-grid" id="splits-grid"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const STATS_URL = 'https://raw.githubusercontent.com/cavjue/NBA_Stats/main/PlayerStatistics.csv';
+
+      function parseCSV(text) {
+        const rows = [];
+        const lines = text.trim().split(/\r?\n/);
+
+        for (const line of lines) {
+          const values = [];
+          let current = '';
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === ',' && !inQuotes) {
+              values.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+
+          values.push(current);
+          rows.push(values);
+        }
+
+        return rows;
+      }
+
+      function getHeaderIndex(headers, candidates) {
+        const normalized = headers.map((h) => (h || '').trim().toLowerCase());
+        for (const candidate of candidates) {
+          const idx = normalized.findIndex((name) => name.includes(candidate));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      }
+
+      function toNumber(value) {
+        if (value === undefined || value === null || value === '') return null;
+        const num = Number.parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function formatDate(dateString) {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      function average(values) {
+        const valid = values.filter((v) => v !== null && Number.isFinite(v));
+        if (!valid.length) return 0;
+        return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+      }
+
+      function populatePage(rows) {
+        if (!rows.length) {
+          document.getElementById('player-name').textContent = 'Luka Dončić';
+          document.getElementById('player-meta').innerHTML = '<span>Player not found in CSV</span>';
+          return;
+        }
+
+        const headers = rows[0].map((h) => String(h).trim());
+        const firstNameIndex = getHeaderIndex(headers, ['firstname']);
+        const lastNameIndex = getHeaderIndex(headers, ['lastname']);
+        const teamCityIndex = getHeaderIndex(headers, ['playerteamcity']);
+        const teamNameIndex = getHeaderIndex(headers, ['playerteamname']);
+        const oppCityIndex = getHeaderIndex(headers, ['opponentteamcity']);
+        const oppNameIndex = getHeaderIndex(headers, ['opponentteamname']);
+        const dateIndex = getHeaderIndex(headers, ['gamedatetimeest', 'date']);
+        const winIndex = getHeaderIndex(headers, ['win']);
+        const pointsIndex = getHeaderIndex(headers, ['points']);
+        const assistsIndex = getHeaderIndex(headers, ['assist']);
+        const reboundsIndex = getHeaderIndex(headers, ['rebound']);
+        const minutesIndex = getHeaderIndex(headers, ['minutes']);
+        const gameLabelIndex = getHeaderIndex(headers, ['gamelabel']);
+        const gameSubLabelIndex = getHeaderIndex(headers, ['gamesublabel']);
+
+        const playerRows = rows.slice(1).filter((row) => {
+          const firstName = (row[firstNameIndex] || '').trim().toLowerCase();
+          const lastName = (row[lastNameIndex] || '').trim().toLowerCase();
+          return firstName === 'luka' && lastName.includes('doncic');
+        });
+
+        if (!playerRows.length) {
+          document.getElementById('player-name').textContent = 'Luka Dončić';
+          document.getElementById('player-meta').innerHTML = '<span>Data not available yet</span>';
+          return;
+        }
+
+        const cleanedRows = playerRows.map((row) => ({
+          firstName: row[firstNameIndex] || '',
+          lastName: row[lastNameIndex] || '',
+          team: `${row[teamCityIndex] || ''} ${row[teamNameIndex] || ''}`.trim(),
+          opponent: `${row[oppCityIndex] || ''} ${row[oppNameIndex] || ''}`.trim(),
+          date: row[dateIndex] || '',
+          win: row[winIndex] === '1' || row[winIndex] === 'true' || row[winIndex] === 'True',
+          points: toNumber(row[pointsIndex]),
+          assists: toNumber(row[assistsIndex]),
+          rebounds: toNumber(row[reboundsIndex]),
+          minutes: toNumber(row[minutesIndex]),
+          gameLabel: row[gameLabelIndex] || '',
+          gameSubLabel: row[gameSubLabelIndex] || ''
+        }));
+
+        const sorted = [...cleanedRows].sort((a, b) => {
+          const da = new Date(a.date); const db = new Date(b.date);
+          return da - db;
+        });
+
+        const wins = sorted.filter((r) => r.win).length;
+        const losses = sorted.length - wins;
+        const ppg = average(sorted.map((r) => r.points));
+        const apg = average(sorted.map((r) => r.assists));
+        const rpg = average(sorted.map((r) => r.rebounds));
+        const mpg = average(sorted.map((r) => r.minutes));
+
+        document.getElementById('player-name').textContent = `${cleanedRows[0].firstName} ${cleanedRows[0].lastName}`;
+        document.getElementById('player-meta').innerHTML = `
+          <span>${cleanedRows[0].team}</span>
+          <span>NBA</span>
+          <span>${sorted.length} games tracked</span>
+        `;
+
+        const summaryCards = [
+          { label: 'Record', value: `${wins}-${losses}`, note: 'all games' },
+          { label: 'PPG', value: ppg.toFixed(1), note: 'points' },
+          { label: 'APG', value: apg.toFixed(1), note: 'assists' },
+          { label: 'RPG', value: rpg.toFixed(1), note: 'rebounds' }
+        ];
+
+        document.getElementById('summary-grid').innerHTML = summaryCards.map((card) => `
+          <div class="stat-card">
+            <span class="label">${card.label}</span>
+            <span class="value">${card.value}</span>
+            <span class="note">${card.note}</span>
+          </div>
+        `).join('');
+
+        const mini = [
+          { label: 'MPG', value: mpg.toFixed(1) },
+          { label: 'Win %', value: `${((wins / sorted.length) * 100 || 0).toFixed(1)}%` },
+          { label: 'Games', value: String(sorted.length) },
+          { label: 'Last 10', value: `${sorted.slice(-10).filter((r) => r.win).length}-${sorted.slice(-10).filter((r) => !r.win).length}` }
+        ];
+
+        document.getElementById('mini-grid').innerHTML = mini.map((item) => `
+          <div class="mini">
+            <span class="label">${item.label}</span>
+            <span class="value">${item.value}</span>
+          </div>
+        `).join('');
+
+        const recentGames = [...sorted].slice(-8).reverse();
+        const recentHtml = recentGames.map((game) => `
+          <tr>
+            <td>${game.gameLabel || 'Game'}${game.gameSubLabel ? ` / ${game.gameSubLabel}` : ''}</td>
+            <td>${game.opponent || '—'}</td>
+            <td class="${game.win ? 'win' : 'loss'}">${game.win ? 'W' : 'L'}</td>
+            <td>${game.points ?? '—'}</td>
+            <td>${game.assists ?? '—'}</td>
+            <td>${game.rebounds ?? '—'}</td>
+            <td>${game.minutes ?? '—'}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('recent-games').innerHTML = recentHtml;
+
+        const splitCards = [
+          { name: 'Record', value: `${wins}-${losses}`, sub: 'all games' },
+          { name: 'PPG', value: ppg.toFixed(1), sub: 'points per game' },
+          { name: 'APG', value: apg.toFixed(1), sub: 'assists per game' },
+          { name: 'RPG', value: rpg.toFixed(1), sub: 'rebounds per game' }
+        ];
+
+        document.getElementById('splits-grid').innerHTML = splitCards.map((item) => `
+          <div class="split-card">
+            <div class="name">${item.name}</div>
+            <span class="big">${item.value}</span>
+            <span class="sub">${item.sub}</span>
+          </div>
+        `).join('');
+      }
+
+      fetch(STATS_URL)
+        .then((response) => {
+          if (!response.ok) throw new Error('CSV not found');
+          return response.text();
+        })
+        .then((csv) => {
+          const rows = parseCSV(csv);
+          populatePage(rows);
+        })
+        .catch((error) => {
+          console.error(error);
+          document.getElementById('player-name').textContent = 'Luka Dončić';
+          document.getElementById('player-meta').innerHTML = '<span>Unable to load CSV data</span>';
+        });
+    </script>
+  </body>
+</html>
