@@ -4,291 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Player Profile | NBA Stats</title>
-    <link rel="stylesheet" href="/styles.css">
-    <style>
-      :root {
-        --bg: #0b1020;
-        --panel: #101a2d;
-        --panel-alt: #121e34;
-        --text: #eaf2ff;
-        --muted: #a7b8d8;
-        --line: rgba(255, 255, 255, 0.08);
-        --accent: #7dc5ff;
-        --green: #5ddab4;
-        --red: #ff7e7e;
-        --gold: #f6c76d;
-        --shadow: 0 18px 30px rgba(0, 0, 0, 0.25);
-      }
-
-      * { box-sizing: border-box; }
-
-      html, body {
-        margin: 0;
-        padding: 0;
-        font-family: Arial, Helvetica, sans-serif;
-      }
-
-      .page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 26px 20px 60px;
-      }
-
-      .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 18px;
-        gap: 12px;
-      }
-
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid var(--line);
-        background: rgba(255,255,255,0.02);
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .hero {
-        display: grid;
-        grid-template-columns: 1.3fr 0.7fr;
-        gap: 18px;
-        margin-top: 14px;
-      }
-
-      .panel {
-        border: 1px solid rgb(0,0,0);
-        border-radius: 14px;
-      }
-
-      .player-panel {
-        padding: 28px 26px 22px;
-      }
-
-      .player-name {
-        margin: 0;
-        font-size: clamp(2rem, 4vw, 3rem);
-        line-height: 1.05;
-        letter-spacing: -0.04em;
-      }
-
-      .player-meta {
-        margin-top: 14px;
-        color: var(--muted);
-        font-size: 14px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      .player-meta span {
-        border: 1px solid var(--line);
-        background: rgba(255,255,255,0.02);
-        padding: 7px 10px;
-        border-radius: 999px;
-      }
-
-      .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(120px, 1fr));
-        gap: 12px;
-        margin-top: 20px;
-      }
-
-      .stat-card {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 14px 12px;
-      }
-
-      .stat-card .label {
-        display: block;
-        color: var(--muted);
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-      }
-
-      .stat-card .value {
-        font-size: clamp(1.3rem, 2vw, 2rem);
-        font-weight: 700;
-        letter-spacing: -0.05em;
-      }
-
-      .stat-card .note {
-        display: block;
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .side-panel {
-        padding: 18px 18px 10px;
-      }
-
-      .side-panel h3 {
-        margin: 0 0 14px;
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      .mini-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(100px, 1fr));
-        gap: 10px;
-      }
-
-      .mini {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid var(--line);
-        border-radius: 11px;
-        padding: 12px 10px;
-      }
-
-      .mini .label {
-        display: block;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      .mini .value {
-        display: block;
-        margin-top: 6px;
-        font-size: 1.3rem;
-        font-weight: 700;
-      }
-
-      .main-grid {
-        display: grid;
-        grid-template-columns: 1.45fr 0.55fr;
-        gap: 18px;
-        margin-top: 18px;
-      }
-
-      .section {
-        padding: 16px 16px 14px;
-      }
-
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .section-header h2 {
-        margin: 0;
-        font-size: 1rem;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        overflow: hidden;
-        border-radius: 12px;
-      }
-
-      thead th {
-        text-align: left;
-        padding: 12px 10px;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        border-bottom: 1px solid var(--line);
-      }
-
-      tbody td {
-        padding: 11px 10px;
-        border-bottom: 1px solid var(--line);
-        font-size: 14px;
-      }
-
-      tbody tr:hover {
-        background: rgba(255,255,255,0.015);
-      }
-
-      .win {
-        color: var(--green);
-        font-weight: 700;
-      }
-
-      .loss {
-        color: var(--red);
-        font-weight: 700;
-      }
-
-      .splits-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
-        gap: 10px;
-      }
-
-      .split-card {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 12px 10px;
-      }
-
-      .split-card .name {
-        color: var(--muted);
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .split-card .big {
-        display: block;
-        margin-top: 8px;
-        font-size: 1.4rem;
-        font-weight: 700;
-      }
-
-      .split-card .sub {
-        display: block;
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      @media (max-width: 900px) {
-        .hero, .main-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .summary-grid {
-          grid-template-columns: repeat(2, minmax(120px, 1fr));
-        }
-      }
-
-      @media (max-width: 560px) {
-        .summary-grid, .mini-grid, .splits-grid {
-          grid-template-columns: 1fr;
-        }
-
-        table {
-          display: block;
-          overflow-x: auto;
-          white-space: nowrap;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css">
   </head>
-  <body>
+  <body class="player-profile">
     <nav class="navbar">
         <div class="navbar-content">
             <ul class="nav-links">
@@ -331,20 +49,30 @@
       <div class="main-grid">
         <section class="panel section">
           <div class="section-header">
-            <h2>Recent games</h2>
+            <h2>Recent games
+              <span>
+                <a href="#top">Top</a>
+              </span>
+            </h2>
           </div>
-          <div style="overflow:hidden; border-radius:12px;">
-            <table>
+          <div class="table-scroll">
+            <table id="recent-games-table">
               <thead>
                 <tr>
                   <th>Game</th>
                   <th>Date</th>
                   <th>Opponent</th>
                   <th>Result</th>
+                  <th>MIN</th>
+                  <th>FGs</th>
+                  <th>3PT FGs</th>
+                  <th>FTs</th>
                   <th>PTS</th>
                   <th>AST</th>
                   <th>REB</th>
-                  <th>MIN</th>
+                  <th>STL</th>
+                  <th>BLK</th>
+                  <th>TO</th>
                 </tr>
               </thead>
               <tbody id="recent-games"></tbody>
@@ -356,7 +84,16 @@
           <div class="section-header">
             <h2>Splits</h2>
           </div>
-          <div class="splits-grid" id="splits-grid"></div>
+          <div class="table-scroll">
+            <table id="splits-table">
+              <thead>
+                <tr id="splits-table-head"></tr>
+              </thead>
+              <tbody>
+                <tr id="splits-table-values"></tr>
+              </tbody>
+            </table>
+          </div>
         </aside>
       </div>
     </div>
@@ -460,6 +197,16 @@
         const pointsIndex = getHeaderIndex(headers, ['points']);
         const assistsIndex = getHeaderIndex(headers, ['assist']);
         const reboundsIndex = getHeaderIndex(headers, ['reboundstotal', 'rebound']);
+        const stealsIndex = getHeaderIndex(headers, ['steals']);
+        const blocksIndex = getHeaderIndex(headers, ['blocks']);
+        const turnoversIndex = getHeaderIndex(headers, ['turnovers']);
+        const fieldGoalsMadeIndex = getHeaderIndex(headers, ['fieldgoalsmade']);
+        const fieldGoalsAttemptedIndex = getHeaderIndex(headers, ['fieldgoalsattempted']);
+        const threePointersMadeIndex = getHeaderIndex(headers, ['threepointersmade']);
+        const threePointersAttemptedIndex = getHeaderIndex(headers, ['threepointersattempted']);
+        const freeThrowsMadeIndex = getHeaderIndex(headers, ['freethrowsmade']);
+        const freeThrowsAttemptedIndex = getHeaderIndex(headers, ['freethrowsattempted']);
+        const plusMinusIndex = getHeaderIndex(headers, ['plusminuspoints']);
         const minutesIndex = getHeaderIndex(headers, ['minutes']);
         const gameLabelIndex = getHeaderIndex(headers, ['gamelabel']);
         const gameSubLabelIndex = getHeaderIndex(headers, ['gamesublabel']);
@@ -480,6 +227,16 @@
           points: toNumber(row[pointsIndex]),
           assists: toNumber(row[assistsIndex]),
           rebounds: toNumber(row[reboundsIndex]),
+          steals: toNumber(row[stealsIndex]),
+          blocks: toNumber(row[blocksIndex]),
+          turnovers: toNumber(row[turnoversIndex]),
+          fieldGoalsMade: toNumber(row[fieldGoalsMadeIndex]),
+          fieldGoalsAttempted: toNumber(row[fieldGoalsAttemptedIndex]),
+          threePointersMade: toNumber(row[threePointersMadeIndex]),
+          threePointersAttempted: toNumber(row[threePointersAttemptedIndex]),
+          freeThrowsMade: toNumber(row[freeThrowsMadeIndex]),
+          freeThrowsAttempted: toNumber(row[freeThrowsAttemptedIndex]),
+          plusMinus: toNumber(row[plusMinusIndex]),
           minutes: toNumber(row[minutesIndex]),
           gameLabel: row[gameLabelIndex] || '',
           gameSubLabel: row[gameSubLabelIndex] || ''
@@ -536,34 +293,55 @@
         `).join('');
 
         const recentGames = [...sorted].slice(-8).reverse();
+        const formatShootingLine = (made, attempted) =>
+          made === null || attempted === null ? '—' : `${made}-${attempted}`;
         const recentHtml = recentGames.map((game) => `
           <tr>
             <td>${escapeHtml(game.gameLabel || 'Game')}${game.gameSubLabel ? ` / ${escapeHtml(game.gameSubLabel)}` : ''}</td>
             <td>${formatDate(game.date)}</td>
             <td>${escapeHtml(game.opponent || '—')}</td>
             <td class="${game.win ? 'win' : 'loss'}">${game.win ? 'W' : 'L'}</td>
+            <td>${game.minutes === null ? '—' : Math.round(game.minutes)}</td>
+            <td>${formatShootingLine(game.fieldGoalsMade, game.fieldGoalsAttempted)}</td>
+            <td>${formatShootingLine(game.threePointersMade, game.threePointersAttempted)}</td>
+            <td>${formatShootingLine(game.freeThrowsMade, game.freeThrowsAttempted)}</td>
             <td>${game.points ?? '—'}</td>
             <td>${game.assists ?? '—'}</td>
             <td>${game.rebounds ?? '—'}</td>
-            <td>${game.minutes ?? '—'}</td>
+            <td>${game.steals ?? '—'}</td>
+            <td>${game.blocks ?? '—'}</td>
+            <td>${game.turnovers ?? '—'}</td>
           </tr>
         `).join('');
 
         document.getElementById('recent-games').innerHTML = recentHtml;
 
-        const splitCards = [
-          { name: 'Record', value: `${wins}-${losses}`, sub: 'all games' },
-          { name: 'PPG', value: ppg.toFixed(1), sub: 'points per game' },
-          { name: 'APG', value: apg.toFixed(1), sub: 'assists per game' },
-          { name: 'RPG', value: rpg.toFixed(1), sub: 'rebounds per game' }
+        const shootingPercentage = (madeKey, attemptedKey) => {
+          const made = sorted.reduce((sum, game) => sum + (game[madeKey] || 0), 0);
+          const attempted = sorted.reduce((sum, game) => sum + (game[attemptedKey] || 0), 0);
+          return attempted ? `${(made / attempted * 100).toFixed(1)}%` : '—';
+        };
+        const splitStats = [
+          { name: 'Games', value: String(sorted.length) },
+          { name: 'Record', value: `${wins}-${losses}` },
+          { name: 'PTS', value: ppg.toFixed(1) },
+          { name: 'REB', value: rpg.toFixed(1) },
+          { name: 'AST', value: apg.toFixed(1) },
+          { name: 'STL', value: average(sorted.map((game) => game.steals)).toFixed(1) },
+          { name: 'BLK', value: average(sorted.map((game) => game.blocks)).toFixed(1) },
+          { name: 'TOV', value: average(sorted.map((game) => game.turnovers)).toFixed(1) },
+          { name: 'FG%', value: shootingPercentage('fieldGoalsMade', 'fieldGoalsAttempted') },
+          { name: '3P%', value: shootingPercentage('threePointersMade', 'threePointersAttempted') },
+          { name: 'FT%', value: shootingPercentage('freeThrowsMade', 'freeThrowsAttempted') },
+          { name: '+/-', value: average(sorted.map((game) => game.plusMinus)).toFixed(1) },
+          { name: 'MIN', value: mpg.toFixed(1) }
         ];
 
-        document.getElementById('splits-grid').innerHTML = splitCards.map((item) => `
-          <div class="split-card">
-            <div class="name">${item.name}</div>
-            <span class="big">${item.value}</span>
-            <span class="sub">${item.sub}</span>
-          </div>
+        document.getElementById('splits-table-head').innerHTML = splitStats.map((item) => `
+          <th scope="col">${escapeHtml(item.name)}</th>
+        `).join('');
+        document.getElementById('splits-table-values').innerHTML = splitStats.map((item) => `
+          <td>${escapeHtml(item.value)}</td>
         `).join('');
       }
 
