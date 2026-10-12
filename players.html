@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Luka Dončić | Player Profile</title>
-    <link rel="stylesheet" href="../styles.css">
+    <title>Player Profile | NBA Stats</title>
+    <link rel="stylesheet" href="/styles.css">
     <style>
       :root {
         --bg: #0b1020;
@@ -292,9 +292,9 @@
     <nav class="navbar">
         <div class="navbar-content">
             <ul class="nav-links">
-                <li><a href="../index.html">Home</a></li>
-                <li><a href="../stats.html">Stats</a></li>
-                <li><a href="../blog.html">Blog</a></li>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/stats.html">Stats</a></li>
+                <li><a href="/blog.html">Blog</a></li>
             </ul>
             <div class="search-container">
                 <input 
@@ -316,7 +316,7 @@
 
       <div class="hero">
         <section class="panel player-panel">
-          <h1 class="player-name" id="player-name">Luka Dončić</h1>
+          <h1 class="player-name" id="player-name">Loading player...</h1>
           <div class="player-meta" id="player-meta"></div>
 
           <div class="summary-grid" id="summary-grid"></div>
@@ -363,6 +363,7 @@
 
     <script>
       const STATS_URL = 'https://raw.githubusercontent.com/cavjue/NBA_Stats/main/Data/PlayerStatistics.csv';
+      const requestedPlayer = new URLSearchParams(window.location.search).get('player') || 'Luka Doncic';
 
       function parseCSV(text) {
         const rows = [];
@@ -426,10 +427,20 @@
         return valid.reduce((sum, value) => sum + value, 0) / valid.length;
       }
 
+      function normalizeName(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[char]);
+      }
+
       function populatePage(rows) {
-        if (!rows.length) {
-          document.getElementById('player-name').textContent = 'Luka Dončić';
-          document.getElementById('player-meta').innerHTML = '<span>Player not found in CSV</span>';
+        if (!rows.length || !rows[0].length) {
+          document.getElementById('player-name').textContent = requestedPlayer;
+          document.getElementById('player-meta').innerHTML = '<span>Player data is unavailable</span>';
           return;
         }
 
@@ -438,26 +449,24 @@
         const lastNameIndex = getHeaderIndex(headers, ['lastname']);
         const teamCityIndex = getHeaderIndex(headers, ['playerteamcity']);
         const teamNameIndex = getHeaderIndex(headers, ['playerteamname']);
+        const playerRows = rows.slice(1).filter((row) =>
+          normalizeName(`${row[firstNameIndex] || ''} ${row[lastNameIndex] || ''}`) === normalizeName(requestedPlayer)
+        );
+
         const oppCityIndex = getHeaderIndex(headers, ['opponentteamcity']);
         const oppNameIndex = getHeaderIndex(headers, ['opponentteamname']);
         const dateIndex = getHeaderIndex(headers, ['gamedatetimeest', 'date']);
         const winIndex = getHeaderIndex(headers, ['win']);
         const pointsIndex = getHeaderIndex(headers, ['points']);
         const assistsIndex = getHeaderIndex(headers, ['assist']);
-        const reboundsIndex = getHeaderIndex(headers, ['rebound']);
+        const reboundsIndex = getHeaderIndex(headers, ['reboundstotal', 'rebound']);
         const minutesIndex = getHeaderIndex(headers, ['minutes']);
         const gameLabelIndex = getHeaderIndex(headers, ['gamelabel']);
         const gameSubLabelIndex = getHeaderIndex(headers, ['gamesublabel']);
-
-        const playerRows = rows.slice(1).filter((row) => {
-          const firstName = (row[firstNameIndex] || '').trim().toLowerCase();
-          const lastName = (row[lastNameIndex] || '').trim().toLowerCase();
-          return firstName === 'luka' && lastName.includes('doncic');
-        });
-
         if (!playerRows.length) {
-          document.getElementById('player-name').textContent = 'Luka Dončić';
-          document.getElementById('player-meta').innerHTML = '<span>Data not available yet</span>';
+          document.title = `${requestedPlayer} | Player Profile`;
+          document.getElementById('player-name').textContent = requestedPlayer;
+          document.getElementById('player-meta').innerHTML = '<span>Player not found in available stats</span>';
           return;
         }
 
@@ -488,9 +497,11 @@
         const rpg = average(sorted.map((r) => r.rebounds));
         const mpg = average(sorted.map((r) => r.minutes));
 
-        document.getElementById('player-name').textContent = `${cleanedRows[0].firstName} ${cleanedRows[0].lastName}`;
+        const displayName = `${cleanedRows[0].firstName} ${cleanedRows[0].lastName}`;
+        document.title = `${displayName} | Player Profile`;
+        document.getElementById('player-name').textContent = displayName;
         document.getElementById('player-meta').innerHTML = `
-          <span>${cleanedRows[0].team}</span>
+          <span>${escapeHtml(cleanedRows[0].team)}</span>
           <span>NBA</span>
           <span>${sorted.length} games tracked</span>
         `;
@@ -527,9 +538,9 @@
         const recentGames = [...sorted].slice(-8).reverse();
         const recentHtml = recentGames.map((game) => `
           <tr>
-            <td>${game.gameLabel || 'Game'}${game.gameSubLabel ? ` / ${game.gameSubLabel}` : ''}</td>
+            <td>${escapeHtml(game.gameLabel || 'Game')}${game.gameSubLabel ? ` / ${escapeHtml(game.gameSubLabel)}` : ''}</td>
             <td>${formatDate(game.date)}</td>
-            <td>${game.opponent || '—'}</td>
+            <td>${escapeHtml(game.opponent || '—')}</td>
             <td class="${game.win ? 'win' : 'loss'}">${game.win ? 'W' : 'L'}</td>
             <td>${game.points ?? '—'}</td>
             <td>${game.assists ?? '—'}</td>
@@ -564,12 +575,56 @@
         .then((csv) => {
           const rows = parseCSV(csv);
           populatePage(rows);
+          initializeSearch(rows);
         })
         .catch((error) => {
           console.error(error);
-          document.getElementById('player-name').textContent = 'Luka Dončić';
+          document.getElementById('player-name').textContent = requestedPlayer;
           document.getElementById('player-meta').innerHTML = '<span>Unable to load CSV data</span>';
         });
+
+      function initializeSearch(rows) {
+        const headers = rows[0].map((header) => String(header).trim());
+        const firstNameIndex = getHeaderIndex(headers, ['firstname']);
+        const lastNameIndex = getHeaderIndex(headers, ['lastname']);
+        const teamCityIndex = getHeaderIndex(headers, ['playerteamcity']);
+        const teamNameIndex = getHeaderIndex(headers, ['playerteamname']);
+        const players = new Map();
+
+        rows.slice(1).forEach((row) => {
+          const firstName = (row[firstNameIndex] || '').trim();
+          const lastName = (row[lastNameIndex] || '').trim();
+          if (!firstName || !lastName) return;
+          const name = `${firstName} ${lastName}`;
+          players.set(normalizeName(name), {
+            name,
+            team: `${row[teamCityIndex] || ''} ${row[teamNameIndex] || ''}`.trim()
+          });
+        });
+
+        const searchInput = document.getElementById('playerSearch');
+        const searchResults = document.getElementById('searchResults');
+        searchInput.addEventListener('input', () => {
+          const query = normalizeName(searchInput.value);
+          const matches = [...players.values()].filter((player) => normalizeName(player.name).includes(query)).slice(0, 8);
+          searchResults.innerHTML = matches.map((player) => `
+            <div class="search-result-item" data-player="${escapeHtml(player.name)}">
+              <div><div class="result-name">${escapeHtml(player.name)}</div><div class="result-team">${escapeHtml(player.team || 'Team TBD')}</div></div>
+            </div>
+          `).join('');
+          searchResults.classList.toggle('active', query.length > 0 && matches.length > 0);
+        });
+        searchResults.addEventListener('click', (event) => {
+          const item = event.target.closest('.search-result-item');
+          if (!item) return;
+          const profileUrl = new URL(window.location.href);
+          profileUrl.searchParams.set('player', item.dataset.player);
+          window.location.href = profileUrl;
+        });
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest('.search-container')) searchResults.classList.remove('active');
+        });
+      }
     </script>
   </body>
 </html>
