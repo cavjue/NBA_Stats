@@ -528,6 +528,7 @@
         const recentHtml = recentGames.map((game) => `
           <tr>
             <td>${game.gameLabel || 'Game'}${game.gameSubLabel ? ` / ${game.gameSubLabel}` : ''}</td>
+            <td>${formatDate(game.date)}</td>
             <td>${game.opponent || '—'}</td>
             <td class="${game.win ? 'win' : 'loss'}">${game.win ? 'W' : 'L'}</td>
             <td>${game.points ?? '—'}</td>
