@@ -15,6 +15,7 @@
             border-bottom: 1px solid #ddd;
             padding: 0;
             top: 0;
+            position: absolute;
             z-index: 100;
         }
 
@@ -502,6 +503,14 @@
 
         .player-profile #recent-games-table {
             min-width: 980px;
+        }
+
+        .table-container {
+            border: 1px solid black;
+        }
+
+        .table-header {
+            font-weight: bold;
         }
 
         @media (max-width: 900px) {
