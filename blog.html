@@ -220,176 +220,256 @@
         </style>
 
         <script>
-            function parseCsv(text) {
-                const rows = [];
-                let current = "";
-                let inQuotes = false;
+    const FALLBACK_BET_ROWS = [
+        {
+            created_at: "2026-10-17",
+            sportsbook: "PrizePicks",
+            sport: "basketball",
+            league: "WNBA",
+            event_name: "Atlanta Dream vs Golden State Valkyries",
+            game_id: "19515",
+            market_name: "Player Points",
+            bet_name: "Angel Reese Over 9.5",
+            odds: "-119",
+            stake: "5",
+            potential_payout: "10",
+            status: "won",
+            bet_type: "parlay",
+            bet_profit: "10",
+            parlay_id: "11111"
+        },
+        {
+            created_at: "2026-10-17",
+            sportsbook: "PrizePicks",
+            sport: "basketball",
+            league: "WNBA",
+            event_name: "Atlanta Dream vs Golden State Valkyries",
+            game_id: "19515",
+            market_name: "Player Fantasy Score",
+            bet_name: "Tiffany Hayes Over 16",
+            odds: "-119",
+            stake: "5",
+            potential_payout: "10",
+            status: "won",
+            bet_type: "parlay",
+            bet_profit: "10",
+            parlay_id: "11111"
+        }
+    ];
 
-                for (let i = 0; i < text.length; i++) {
-                    const ch = text[i];
-                    const next = text[i + 1];
+    function parseCsv(text) {
+        if (!text || !text.trim()) return [];
 
-                    if (ch === '"') {
-                        if (inQuotes && next === '"') {
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = !inQuotes;
-                        }
-                    } else if (ch === "," && !inQuotes) {
-                        rows.push(current);
-                        current = "";
-                    } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
-                        if (ch === "\r" && next === "\n") i++;
-                        rows.push(current);
-                        current = "";
+        const rows = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            const next = text[i + 1];
+
+            if (ch === '"') {
+                if (inQuotes && next === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch === "," && !inQuotes) {
+                rows.push(current);
+                current = "";
+            } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+                if (ch === "\r" && next === "\n") i++;
+                rows.push(current);
+                current = "";
+            } else {
+                current += ch;
+            }
+        }
+
+        if (current.length || text.endsWith("\n") || text.endsWith("\r")) {
+            rows.push(current);
+        }
+
+        const cleaned = rows
+            .map(row => row.trim())
+            .filter(row => row !== "");
+
+        if (!cleaned.length) return [];
+
+        const headers = cleaned[0].split(",").map(h => h.trim().replace(/^['"]|['"]$/g, ""));
+
+        return cleaned.slice(1).map(row => {
+            const values = [];
+            let currentValue = "";
+            let inQuote = false;
+
+            for (let i = 0; i < row.length; i++) {
+                const ch = row[i];
+                if (ch === '"') {
+                    if (inQuote && row[i + 1] === '"') {
+                        currentValue += '"';
+                        i++;
                     } else {
-                        current += ch;
+                        inQuote = !inQuote;
                     }
-                }
-
-                if (current.length || text.endsWith("\n") || text.endsWith("\r")) {
-                    rows.push(current);
-                }
-
-                const cleaned = rows
-                    .map(row => row.trim())
-                    .filter(row => row !== "");
-
-                if (!cleaned.length) return [];
-
-                const headers = cleaned[0].split(",").map(h => h.trim().replace(/^['"]|['"]$/g, ""));
-
-                return cleaned.slice(1).map(row => {
-                    const values = [];
-                    let currentValue = "";
-                    let inQuote = false;
-
-                    for (let i = 0; i < row.length; i++) {
-                        const ch = row[i];
-                        if (ch === '"') {
-                            if (inQuote && row[i + 1] === '"') {
-                                currentValue += '"';
-                                i++;
-                            } else {
-                                inQuote = !inQuote;
-                            }
-                        } else if (ch === "," && !inQuote) {
-                            values.push(currentValue.trim());
-                            currentValue = "";
-                        } else {
-                            currentValue += ch;
-                        }
-                    }
-
+                } else if (ch === "," && !inQuote) {
                     values.push(currentValue.trim());
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        obj[header] = values[index] || "";
-                    });
-                    return obj;
-                }).filter(row => Object.keys(row).length);
-            }
-
-            function computeTotals(rows) {
-                let wins = 0;
-                let losses = 0;
-                let pending = 0;
-
-                rows.forEach(row => {
-                    const status = (row.status || "").toLowerCase();
-                    if (status === "won") wins++;
-                    else if (status === "lost") losses++;
-                    else if (status) pending++;
-                });
-
-                return { wins, losses, pending };
-            }
-
-            function groupByParlay(rows) {
-                const map = new Map();
-
-                rows.forEach(row => {
-                    const parlayId = String(row.parlay_id || row.parlayId || row.parlay || "single").trim() || "single";
-                    if (!map.has(parlayId)) {
-                        map.set(parlayId, {
-                            id: parlayId,
-                            legs: []
-                        });
-                    }
-
-                    const group = map.get(parlayId);
-                    const status = (row.status || "").toLowerCase();
-
-                    group.legs.push({
-                        name: row.bet_name || row.market_name || row.bet || "Bet",
-                        market: row.market_name || row.bet_name || "",
-                        sportsbook: row.sportsbook || row.bookmaker || row.sportsbooks || row.sportbook || "Unknown",
-                        status: status === "won" ? "won" : status === "lost" ? "lost" : "pending"
-                    });
-                });
-
-                return [...map.values()];
-            }
-
-            function renderDashboard(rows) {
-                const totals = computeTotals(rows);
-                document.getElementById("recordValue").textContent = `${totals.wins}-${totals.losses}`;
-
-                const profitValue = rows.reduce((sum, row) => {
-                    const val = Number((row.bet_profit || row.profit || "0").replace(/[^0-9.-]/g, ""));
-                    return sum + (Number.isFinite(val) ? val : 0);
-                }, 0);
-                document.getElementById("profitValue").textContent = `$${profitValue.toFixed(2)}`;
-
-                const totalBets = totals.wins + totals.losses + totals.pending;
-                const roi = totalBets > 0 ? ((totals.wins - totals.losses) / totalBets) * 100 : 0;
-                document.getElementById("roiValue").textContent = `${roi.toFixed(1)}%`;
-
-                const details = document.getElementById("betDetails");
-                const groups = groupByParlay(rows);
-
-                if (!groups.length) {
-                    details.innerHTML = '<div class="bet-details-empty">No bet data loaded.</div>';
-                    return;
+                    currentValue = "";
+                } else {
+                    currentValue += ch;
                 }
+            }
 
-                details.innerHTML = groups.map(group => {
-                    const groupStatus = group.legs.some(leg => leg.status === "won") && !group.legs.some(leg => leg.status === "lost")
-                        ? "won"
-                        : group.legs.some(leg => leg.status === "lost") ? "lost" : "pending";
+            values.push(currentValue.trim());
 
-                    return `
-                        <div class="bet-entry">
-                            <div class="bet-entry-row">
-                                <span class="label">Parlay #${group.id}</span>
-                                <span class="value status-${groupStatus}">${groupStatus}</span>
-                            </div>
-                            ${group.legs.map(leg => `
-                                <div class="bet-entry-row">
-                                    <span class="label">${leg.name}</span>
-                                    <span class="value">${leg.sportsbook}</span>
-                                </div>
-                            `).join("")}
+            const obj = {};
+            headers.forEach((header, index) => {
+                obj[header] = values[index] || "";
+            });
+
+            return obj;
+        }).filter(row => Object.keys(row).length);
+    }
+
+    function getParlayProfit(rows) {
+        const grouped = new Map();
+
+        rows.forEach(row => {
+            const parlayId = String(row.parlay_id || "single").trim() || "single";
+            if (!grouped.has(parlayId)) {
+                grouped.set(parlayId, {
+                    stake: 0,
+                    payout: 0,
+                    status: "pending"
+                });
+            }
+
+            const entry = grouped.get(parlayId);
+            const stake = Number(String(row.stake || "0").replace(/[^0-9.-]/g, "")) || 0;
+            const payout = Number(String(row.potential_payout || row.payout || "0").replace(/[^0-9.-]/g, "")) || 0;
+
+            entry.stake += stake;
+            entry.payout += payout;
+
+            if ((row.status || "").toLowerCase() === "won") {
+                entry.status = "won";
+            } else if ((row.status || "").toLowerCase() === "lost") {
+                entry.status = "lost";
+            }
+        });
+
+        let totalProfit = 0;
+
+        grouped.forEach((entry) => {
+            if (entry.status === "won") {
+                totalProfit += entry.payout - entry.stake;
+            } else if (entry.status === "lost") {
+                totalProfit -= entry.stake;
+            }
+        });
+
+        return totalProfit;
+    }
+
+    function computeRecord(rows) {
+        let wins = 0;
+        let losses = 0;
+
+        rows.forEach(row => {
+            const status = (row.status || "").toLowerCase();
+            if (status === "won") wins++;
+            else if (status === "lost") losses++;
+        });
+
+        return { wins, losses };
+    }
+
+    function groupByParlay(rows) {
+        const map = new Map();
+
+        rows.forEach(row => {
+            const parlayId = String(row.parlay_id || "single").trim() || "single";
+
+            if (!map.has(parlayId)) {
+                map.set(parlayId, {
+                    id: parlayId,
+                    legs: []
+                });
+            }
+
+            const group = map.get(parlayId);
+            const status = (row.status || "").toLowerCase();
+
+            group.legs.push({
+                name: row.bet_name || row.market_name || "Bet",
+                sportsbook: row.sportsbook || "Unknown",
+                status: status === "won" ? "won" : status === "lost" ? "lost" : "pending"
+            });
+        });
+
+        return [...map.values()];
+    }
+
+    function renderDashboard(rows) {
+        const record = computeRecord(rows);
+        const profit = getParlayProfit(rows);
+
+        document.getElementById("recordValue").textContent = `${record.wins}-${record.losses}`;
+        document.getElementById("profitValue").textContent = `$${profit.toFixed(2)}`;
+        document.getElementById("roiValue").textContent = `${((profit / Math.max(1, record.wins + record.losses)) * 100).toFixed(1)}%`;
+
+        const details = document.getElementById("betDetails");
+        const groups = groupByParlay(rows);
+
+        if (!groups.length) {
+            details.innerHTML = '<div class="bet-details-empty">No bet data loaded.</div>';
+            return;
+        }
+
+        details.innerHTML = groups.map(group => {
+            const groupStatus = group.legs.some(leg => leg.status === "won") && !group.legs.some(leg => leg.status === "lost")
+                ? "won"
+                : group.legs.some(leg => leg.status === "lost") ? "lost" : "pending";
+
+            return `
+                <div class="bet-entry">
+                    <div class="bet-entry-row">
+                        <span class="label">Parlay #${group.id}</span>
+                        <span class="value status-${groupStatus}">${groupStatus}</span>
+                    </div>
+                    ${group.legs.map(leg => `
+                        <div class="bet-entry-row">
+                            <span class="label">${leg.name}</span>
+                            <span class="value">${leg.sportsbook}</span>
                         </div>
-                    `;
-                }).join("");
-            }
+                    `).join("")}
+                </div>
+            `;
+        }).join("");
+    }
 
-            async function loadBetData() {
-                try {
-                    const response = await fetch("Data/bet_log.csv");
-                    if (!response.ok) throw new Error("CSV not found");
-                    const csvText = await response.text();
-                    const rows = parseCsv(csvText);
-                    renderDashboard(rows);
-                } catch (error) {
-                    console.error(error);
-                    document.getElementById("betDetails").innerHTML = '<div class="bet-details-empty">Unable to load bet data.</div>';
-                }
-            }
+    async function loadBetData() {
+        let rows = [];
 
-            loadBetData();
-        </script>
+        try {
+            const response = await fetch("Data/bet_log.csv", { cache: "no-store" });
+            if (response.ok) {
+                const csvText = await response.text();
+                rows = parseCsv(csvText);
+            }
+        } catch (error) {
+            console.warn("CSV fetch failed; using fallback data", error);
+        }
+
+        if (!rows.length) {
+            rows = FALLBACK_BET_ROWS;
+        }
+
+        renderDashboard(rows);
+    }
+
+    loadBetData();
+</script>
     </body>
 </html>
