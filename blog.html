@@ -26,12 +26,295 @@
             </div>
         </nav>
 
-        <div>
+        <div class="performance">
             <h3>Performance</h3>
-            <h4>Profit</h4>
-            <h4>ROI</h4>
-            <h4>Record</h4>
+            <div class="performance-grid">
+                <div class="metric-card">
+                    <h4>Profit</h4>
+                    <p id="profitValue">--</p>
+                </div>
+                <div class="metric-card">
+                    <h4>ROI</h4>
+                    <p id="roiValue">--</p>
+                </div>
+                <div class="metric-card record-card">
+                    <h4>Record</h4>
+                    <div id="recordList" class="record-list"></div>
+                </div>
+            </div>
         </div>
 
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                color: #111;
+            }
+
+            .performance {
+                max-width: 1000px;
+                margin: 32px auto 0;
+                padding: 0 20px 40px;
+            }
+
+            .performance h3 {
+                margin-bottom: 16px;
+            }
+
+            .performance-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 20px;
+            }
+
+            .metric-card {
+                background: #f8f8f8;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 18px;
+            }
+
+            .metric-card h4 {
+                margin-bottom: 8px;
+            }
+
+            .record-list {
+                margin-top: 10px;
+            }
+
+            .parlay-item {
+                border: 1px solid #d9d9d9;
+                border-radius: 8px;
+                background: white;
+                overflow: hidden;
+                margin-bottom: 12px;
+            }
+
+            .parlay-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #f1f1f1;
+                padding: 12px 14px;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .parlay-title {
+                font-weight: 700;
+            }
+
+            .status {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                padding: 5px 8px;
+                border-radius: 999px;
+            }
+
+            .status.won {
+                background: #eaf9ee;
+                color: #177a3d;
+            }
+
+            .status.lost {
+                background: #fdecec;
+                color: #a62b2b;
+            }
+
+            .bet-legs {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .bet-leg {
+                display: grid;
+                grid-template-columns: 1fr 1.5fr auto;
+                gap: 12px;
+                padding: 12px 14px;
+                border-bottom: 1px solid #eee;
+            }
+
+            .bet-leg:last-child {
+                border-bottom: none;
+            }
+
+            .leg-name {
+                font-weight: 700;
+            }
+
+            .leg-book {
+                color: #666;
+                font-size: 12px;
+            }
+        </style>
+
+        <script>
+            function parseCsv(text) {
+                const rows = [];
+                let current = "";
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    const ch = text[i];
+                    const next = text[i + 1];
+
+                    if (ch === '"') {
+                        if (inQuotes && next === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (ch === "," && !inQuotes) {
+                        rows.push(current);
+                        current = "";
+                    } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+                        if (ch === "\r" && next === "\n") i++;
+                        rows.push(current);
+                        current = "";
+                    } else {
+                        current += ch;
+                    }
+                }
+
+                if (current.length || text.endsWith("\n") || text.endsWith("\r")) {
+                    rows.push(current);
+                }
+
+                const cleaned = rows
+                    .map(row => row.trim())
+                    .filter(row => row !== "");
+
+                if (!cleaned.length) return [];
+
+                const headers = cleaned[0].split(",").map(h => h.trim().replace(/^['"]|['"]$/g, ""));
+                return cleaned.slice(1).map(row => {
+                    const values = [];
+                    let currentValue = "";
+                    let inQuote = false;
+
+                    for (let i = 0; i < row.length; i++) {
+                        const ch = row[i];
+                        if (ch === '"') {
+                            if (inQuote && row[i + 1] === '"') {
+                                currentValue += '"';
+                                i++;
+                            } else {
+                                inQuote = !inQuote;
+                            }
+                        } else if (ch === "," && !inQuote) {
+                            values.push(currentValue.trim());
+                            currentValue = "";
+                        } else {
+                            currentValue += ch;
+                        }
+                    }
+
+                    values.push(currentValue.trim());
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = values[index] || "";
+                    });
+                    return obj;
+                }).filter(row => Object.keys(row).length);
+            }
+
+            function normalizeRecordRows(rows) {
+                const groups = new Map();
+
+                rows.forEach(row => {
+                    const rawParlayId = row.parlay_id || row.parlayId || row.parlay || "single";
+                    const parlayId = String(rawParlayId).trim() || "single";
+
+                    if (!groups.has(parlayId)) {
+                        groups.set(parlayId, {
+                            parlayId,
+                            legs: []
+                        });
+                    }
+
+                    const group = groups.get(parlayId);
+                    const status = (row.status || "").toLowerCase();
+
+                    group.legs.push({
+                        name: row.bet_name || row.market_name || row.bet || "Bet",
+                        market: row.market_name || row.bet_name || "",
+                        sportsbook: row.sportsbook || row.bookmaker || row.sportsbooks || row.sportbook || "Unknown",
+                        status: status === "won" ? "won" : status === "lost" ? "lost" : "pending"
+                    });
+                });
+
+                return [...groups.values()];
+            }
+
+            function renderRecord(groups) {
+                const recordList = document.getElementById("recordList");
+                if (!recordList) return;
+
+                if (!groups.length) {
+                    recordList.innerHTML = "<p>No bets found.</p>";
+                    return;
+                }
+
+                let wins = 0;
+                let losses = 0;
+
+                groups.forEach(group => {
+                    const groupStatus = group.legs.some(leg => leg.status === "won") && !group.legs.some(leg => leg.status === "lost")
+                        ? "won"
+                        : group.legs.some(leg => leg.status === "lost") ? "lost" : "pending";
+
+                    if (groupStatus === "won") wins++;
+                    if (groupStatus === "lost") losses++;
+                });
+
+                document.getElementById("profitValue").textContent = `$${(wins * 10 - losses * 10).toFixed(2)}`;
+                document.getElementById("roiValue").textContent = `${(((wins - losses) / Math.max(1, wins + losses)) * 100).toFixed(1)}%`;
+
+                recordList.innerHTML = groups.map(group => {
+                    const groupStatus = group.legs.some(leg => leg.status === "won") && !group.legs.some(leg => leg.status === "lost")
+                        ? "won"
+                        : group.legs.some(leg => leg.status === "lost") ? "lost" : "pending";
+
+                    const legsHtml = group.legs.map(leg => `
+                        <li class="bet-leg">
+                            <span class="leg-name">${leg.name}</span>
+                            <span class="leg-market">${leg.market}</span>
+                            <span class="leg-book">${leg.sportsbook}</span>
+                        </li>
+                    `).join("");
+
+                    return `
+                        <div class="parlay-item">
+                            <div class="parlay-header">
+                                <span class="parlay-title">Parlay #${group.parlayId}</span>
+                                <span class="status ${groupStatus}">${groupStatus}</span>
+                            </div>
+                            <ul class="bet-legs">
+                                ${legsHtml}
+                            </ul>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            async function loadBetData() {
+                try {
+                    const response = await fetch("Data/bet_log.csv");
+                    if (!response.ok) throw new Error("CSV not found");
+                    const csvText = await response.text();
+                    const rows = parseCsv(csvText);
+                    const grouped = normalizeRecordRows(rows);
+                    renderRecord(grouped);
+                } catch (error) {
+                    const recordList = document.getElementById("recordList");
+                    if (recordList) recordList.innerHTML = "<p>Unable to load bet data.</p>";
+                    console.error(error);
+                }
+            }
+
+            loadBetData();
+        </script>
     </body>
 </html>
