@@ -61,8 +61,19 @@
 
         // Daily NBA slate (ESPN scoreboard feed)
         const SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+        const REFEREE_ASSIGNMENTS_URL = 'https://official.nba.com/referee-assignments/';
         const slateDateInput = document.getElementById('slateDate');
         const gamesGrid = document.getElementById('gamesGrid');
+        let refereeAssignments = {};
+
+        function normalizeTeamName(value) {
+            return String(value || '')
+                .replace(/&/g, 'and')
+                .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
 
         function formatDateForApi(date) {
             const year = date.getFullYear();
@@ -88,6 +99,61 @@
             })[char]);
         }
 
+        function getRefereesForGame(awayName, homeName) {
+            const awayKey = normalizeTeamName(awayName);
+            const homeKey = normalizeTeamName(homeName);
+            const direct = refereeAssignments[`${awayKey}@@${homeKey}`] || refereeAssignments[`${homeKey}@@${awayKey}`];
+            if (direct) return direct;
+
+            const fallbackMatches = Object.entries(refereeAssignments).filter(([gameKey]) => {
+                const [away, home] = gameKey.split('@@');
+                return away.includes(awayKey) || home.includes(homeKey) || awayKey.includes(away) || homeKey.includes(home);
+            });
+
+            if (fallbackMatches.length) return fallbackMatches[0][1];
+            return ['Not available'];
+        }
+
+        async function loadRefereeAssignments() {
+            try {
+                const response = await fetch(REFEREE_ASSIGNMENTS_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`Referee assignments request failed (${response.status})`);
+
+                const html = await response.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const candidateRows = doc.querySelectorAll('tr, li, .referee-row, .assignment-item, .game-item');
+                const assignmentMap = {};
+
+                candidateRows.forEach((row) => {
+                    const text = (row.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (!text || !text.includes('@') || text.length < 25) return;
+
+                    const matchupMatch = text.match(/([A-Za-z\.\s&]+?)\s*@\s*([A-Za-z\.\s&]+?)(?=\s*(?:\||-|:|\d{1,2}:\d{2}|Crew|Referee|Umpire|Official|\())/i);
+                    if (!matchupMatch) return;
+
+                    const awayTeam = matchupMatch[1].replace(/\s+and\s+/gi, ' & ').trim();
+                    const homeTeam = matchupMatch[2].replace(/\s+and\s+/gi, ' & ').trim();
+                    const names = Array.from(new Set(
+                        (text.match(/[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+/g) || [])
+                            .filter((name) => !['Crew', 'Chief', 'Referee', 'Umpire', 'Official', 'NBA', 'WNBA', 'Replay', 'Center'].includes(name.trim()))
+                    )).slice(0, 3);
+
+                    if (!names.length) return;
+
+                    const normalizedAway = normalizeTeamName(awayTeam);
+                    const normalizedHome = normalizeTeamName(homeTeam);
+                    assignmentMap[`${normalizedAway}@@${normalizedHome}`] = names;
+                    assignmentMap[`${normalizedHome}@@${normalizedAway}`] = names;
+                });
+
+                refereeAssignments = assignmentMap;
+                console.log('Loaded referee assignments:', Object.keys(refereeAssignments).length);
+            } catch (error) {
+                console.error('Error loading referee assignments:', error);
+                refereeAssignments = {};
+            }
+        }
+
         function renderDailySlate(data) {
             const events = data.events || [];
             if (!events.length) {
@@ -107,6 +173,11 @@
                 const score = (team) => team.score !== undefined ? escapeHtml(team.score) : '—';
                 const gameTime = event.date ? new Date(event.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
                 const venue = competition?.venue?.fullName || '';
+                const awayName = displayTeam(away);
+                const homeName = displayTeam(home);
+                const referees = getRefereesForGame(awayName, homeName);
+                const refereeLabel = referees.length ? referees.join(' · ') : 'Officials not available';
+
                 return `
                     <article class="game-card">
                         <div class="game-status">${escapeHtml(status)}</div>
@@ -117,6 +188,10 @@
                         <div class="team-row">
                             <div><div class="team-name">${escapeHtml(displayTeam(home))}</div><div class="team-record">${escapeHtml(home.records?.[0]?.summary || '')}</div></div>
                             <div class="team-score">${isCompleted || isLive ? score(home) : '—'}</div>
+                        </div>
+                        <div class="referee-block">
+                            <div class="referee-label">Officials</div>
+                            <div class="referee-names">${escapeHtml(refereeLabel)}</div>
                         </div>
                         <div class="game-footer">${escapeHtml(gameTime)}${venue ? ' · ' + escapeHtml(venue) : ''}</div>
                     </article>`;
@@ -150,7 +225,13 @@
         slateDateInput.addEventListener('change', () => {
             if (slateDateInput.value) setSlateDate(dateFromInput(slateDateInput.value));
         });
-        setSlateDate(new Date());
+
+        async function initializeHomePage() {
+            await loadRefereeAssignments();
+            setSlateDate(new Date());
+        }
+
+        initializeHomePage();
 
         // Parse CSV function
         function parseCSV(text) {
