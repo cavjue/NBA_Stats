@@ -220,50 +220,70 @@
         </style>
 
         <script>
-            const BET_ROWS = [
-                {
-                    created_at: "2026-10-17",
-                    sportsbook: "PrizePicks",
-                    sport: "basketball",
-                    league: "WNBA",
-                    event_name: "Atlanta Dream vs Golden State Valkyries",
-                    game_id: "19515",
-                    market_name: "Player Points",
-                    bet_name: "Angel Reese Over 9.5",
-                    odds: "-119",
-                    stake: "5",
-                    potential_payout: "15",
-                    status: "won",
-                    bet_type: "parlay",
-                    bet_profit: "10",
-                    is_live_bet: "False",
-                    is_free_bet: "False",
-                    is_odds_boost: "False",
-                    parlay_id: "11111",
-                    tags: ""
-                },
-                {
-                    created_at: "2026-10-17",
-                    sportsbook: "PrizePicks",
-                    sport: "basketball",
-                    league: "WNBA",
-                    event_name: "Atlanta Dream vs Golden State Valkyries",
-                    game_id: "19515",
-                    market_name: "Player Fantasy Score",
-                    bet_name: "Tiffany Hayes Over 16",
-                    odds: "-119",
-                    stake: "5",
-                    potential_payout: "15",
-                    status: "won",
-                    bet_type: "parlay",
-                    bet_profit: "10",
-                    is_live_bet: "False",
-                    is_free_bet: "False",
-                    is_odds_boost: "False",
-                    parlay_id: "11111",
-                    tags: ""
+            const BET_ROWS = [];
+
+            function parseCsvLine(line) {
+                const values = [];
+                let current = "";
+                let inQuotes = false;
+
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current);
+                        current = "";
+                    } else {
+                        current += char;
+                    }
                 }
-            ];
+
+                values.push(current);
+                return values.map(value => value.trim());
+            }
+
+            function parseCsv(csvText) {
+                const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
+                if (!lines.length) return [];
+
+                const headers = parseCsvLine(lines[0]);
+
+                return lines.slice(1).map(line => {
+                    const values = parseCsvLine(line);
+                    const row = {};
+
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ?? "";
+                    });
+
+                    return row;
+                });
+            }
+
+            async function loadBetRows() {
+                try {
+                    const response = await fetch("Data/bet_log.csv");
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const csvText = await response.text();
+                    const rows = parseCsv(csvText);
+                    BET_ROWS.length = 0;
+                    BET_ROWS.push(...rows);
+                    renderDashboard(BET_ROWS);
+                } catch (error) {
+                    console.error("Failed to load bet_log.csv:", error);
+                    renderDashboard(BET_ROWS);
+                }
+            }
 
             function computeRecord(rows) {
                 let wins = 0;
@@ -370,7 +390,7 @@
                 }).join("");
             }
 
-            renderDashboard(BET_ROWS);
+            loadBetRows();
         </script>
     </body>
 </html>
