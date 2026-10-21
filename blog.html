@@ -368,6 +368,11 @@
 
             function getLegProfit(row) {
                 const status = getStatusValue(row.status);
+                const betProfit = parseMoney(row.bet_profit);
+                if (betProfit !== 0 || (row.bet_profit !== undefined && String(row.bet_profit).trim() !== "")) {
+                    return betProfit;
+                }
+
                 const stake = parseMoney(row.stake);
                 const payout = parseMoney(row.potential_payout || row.payout);
 
@@ -388,26 +393,25 @@
                 rows.forEach(row => {
                     const parlayId = String(row.parlay_id || "single").trim() || "single";
                     if (!grouped.has(parlayId)) {
-                        grouped.set(parlayId, { stake: 0, payout: 0, status: "pending", legs: [] });
+                        grouped.set(parlayId, {
+                            stake: 0,
+                            payout: 0,
+                            profit: 0,
+                            status: "pending",
+                            legs: []
+                        });
                     }
 
                     const entry = grouped.get(parlayId);
-                    const stake = parseMoney(row.stake);
-                    const payout = parseMoney(row.potential_payout || row.payout);
-                    const status = getStatusValue(row.status);
+                    const rowStatus = getStatusValue(row.status);
+                    const rowProfit = getLegProfit(row);
 
-                    entry.stake += stake;
-                    entry.payout += payout;
-                    entry.legs.push({
-                        ...row,
-                        status,
-                        profit: getLegProfit(row)
-                    });
+                    entry.stake += parseMoney(row.stake);
+                    entry.payout += parseMoney(row.potential_payout || row.payout);
+                    entry.legs.push({ ...row, status: rowStatus, profit: rowProfit });
 
-                    if (status === "won") {
-                        entry.status = entry.legs.length === 1 ? "won" : entry.status;
-                    } else if (status === "lost") {
-                        entry.status = entry.legs.length === 1 ? "lost" : entry.status;
+                    if (entry.profit === 0 && rowProfit !== 0) {
+                        entry.profit = rowProfit;
                     }
                 });
 
@@ -416,7 +420,18 @@
 
                 grouped.forEach(entry => {
                     totalStake += entry.stake;
-                    totalProfit += entry.legs.reduce((sum, leg) => sum + leg.profit, 0);
+
+                    const profitValues = entry.legs
+                        .map(leg => leg.profit)
+                        .filter(value => Number.isFinite(value));
+
+                    if (profitValues.length) {
+                        const firstProfit = profitValues[0];
+                        const allSame = profitValues.every(value => value === firstProfit);
+                        entry.profit = allSame ? firstProfit : entry.legs.some(leg => leg.status === "lost") ? -Math.abs(entry.stake || firstProfit) : firstProfit;
+                    }
+
+                    totalProfit += entry.profit;
                 });
 
                 return { totalProfit, totalStake };
@@ -438,12 +453,14 @@
 
                     const group = map.get(parlayId);
                     const status = getStatusValue(row.status);
+                    const profit = getLegProfit(row);
 
                     group.legs.push({
                         name: row.bet_name || row.market_name || "Bet",
                         sportsbook: row.sportsbook || "Unknown",
                         status,
-                        profit: getLegProfit(row)
+                        profit,
+                        bet_profit: row.bet_profit || ""
                     });
 
                     if (!group.sportsbook || group.sportsbook === "Unknown") {
@@ -452,26 +469,45 @@
                 });
 
                 return [...map.values()].map(group => {
-                    const groupProfit = group.legs.reduce((total, leg) => total + leg.profit, 0);
+                    const nonEmptyProfitValues = group.legs
+                        .map(leg => parseMoney(leg.bet_profit))
+                        .filter(value => value !== 0 || (group.legs.some(leg => leg.bet_profit && String(leg.bet_profit).trim() !== "") && group.legs.some(leg => leg.bet_profit && String(leg.bet_profit).trim() === "")) ? false : true);
+
+                    const parlayProfit = (() => {
+                        const betProfitValues = group.legs
+                            .map(leg => parseMoney(leg.bet_profit))
+                            .filter(value => Number.isFinite(value) && value !== 0 || (leg => leg.bet_profit !== undefined && String(leg.bet_profit).trim() !== ""));
+                        const explicitProfitValue = group.legs
+                            .map(leg => parseMoney(leg.bet_profit))
+                            .find(value => value !== 0 || String(group.legs.find(leg => leg.bet_profit && String(leg.bet_profit).trim() !== "")?.bet_profit || "").trim() !== "");
+
+                        if (explicitProfitValue !== undefined && explicitProfitValue !== null && !(explicitProfitValue === 0 && group.legs.every(leg => !String(leg.bet_profit || "").trim()))) {
+                            return explicitProfitValue;
+                        }
+
+                        const totalLegProfit = group.legs.reduce((sum, leg) => sum + leg.profit, 0);
+                        if (group.legs.some(leg => leg.status === "lost")) {
+                            return totalLegProfit < 0 ? totalLegProfit : -Math.abs(group.legs.reduce((sum, leg) => sum + parseMoney(leg.bet_profit || leg.stake || 0), 0));
+                        }
+                        return totalLegProfit;
+                    })();
+
                     const groupStatus = group.legs.every(leg => leg.status === "won")
                         ? "won"
-                        : group.legs.every(leg => leg.status === "lost")
+                        : group.legs.some(leg => leg.status === "lost")
                             ? "lost"
-                            : group.legs.some(leg => leg.status === "won") && group.legs.some(leg => leg.status === "lost")
-                                ? "lost"
-                                : "pending";
+                            : "pending";
 
                     return {
                         ...group,
-                        profit: groupProfit,
+                        profit: parlayProfit,
                         status: groupStatus
                     };
                 });
             }
 
             function formatCurrency(value) {
-                const formatted = Math.abs(value).toFixed(2);
-                return `$${formatted}`;
+                return `$${Math.abs(value).toFixed(2)}`;
             }
 
             function renderDashboard(rows) {
@@ -494,8 +530,7 @@
 
                 details.innerHTML = groups.map(group => {
                     const statusClass = group.status === "won" ? "profit-win" : group.status === "lost" ? "profit-loss" : "profit-pending";
-                    const statusText = group.status.toUpperCase();
-                    const profitDisplay = group.profit >= 0 ? `${statusText} ${formatCurrency(group.profit)}` : `${statusText} -${formatCurrency(group.profit)}`;
+                    const profitDisplay = `${group.status.toUpperCase()} ${formatCurrency(group.profit)}`;
 
                     return `
                         <div class="bet-entry">
