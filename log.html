@@ -522,7 +522,13 @@
                 document.getElementById("roiValue").textContent = `${roi.toFixed(1)}%`;
 
                 const details = document.getElementById("betDetails");
-                const groups = groupByParlay(rows);
+                const groups = groupByParlay(rows).sort((a, b) => {
+                    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+                    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+                    if (aTime !== bTime) return bTime - aTime;
+                    return Number(b.id) - Number(a.id);
+                });
 
                 if (!groups.length) {
                     details.innerHTML = '<div class="bet-details-empty">No bet data loaded.</div>';
